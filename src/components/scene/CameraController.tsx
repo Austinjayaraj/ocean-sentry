@@ -3,6 +3,8 @@ import { useFrame, useThree } from '@react-three/fiber';
 import * as THREE from 'three';
 import type { CameraStage } from '../../types/ocean';
 import { easeInOutCubic, latLonToXYZ } from '../../utils/oceanCalc';
+import { CinematicCameraControllerLogic } from '../../camera/CinematicCameraController';
+import type { CinematicTransitionConfig } from '../../camera/cameraTransitions';
 
 // Camera position presets focused on India, Bay of Bengal, and Indian Ocean
 const CAMERA_PRESETS: Record<CameraStage, { pos: THREE.Vector3; target: THREE.Vector3 }> = {
@@ -22,6 +24,8 @@ interface CameraControllerProps {
   handDelta?: { dx: number; dy: number };
   handZoom?: number;
   isFist?: boolean;
+  cinematicController?: CinematicCameraControllerLogic | null;
+  currentTargetRef?: React.MutableRefObject<THREE.Vector3>;
 }
 
 export function CameraController({
@@ -32,6 +36,8 @@ export function CameraController({
   handDelta,
   handZoom = 1.0,
   isFist = false,
+  cinematicController,
+  currentTargetRef: externalTargetRef,
 }: CameraControllerProps) {
   const { camera } = useThree();
   const progress = useRef(0);
@@ -40,6 +46,13 @@ export function CameraController({
   const fromTarget = useRef(new THREE.Vector3());
   const currentTarget = useRef(new THREE.Vector3(0.1, 0.35, -0.6));
   const orbitTarget = useRef(new THREE.Vector3(0.1, 0.35, -0.6));
+
+  // Sync external target ref if provided
+  useEffect(() => {
+    if (externalTargetRef) {
+      externalTargetRef.current = currentTarget.current;
+    }
+  }, [externalTargetRef]);
 
   // Capture transition start on stage change
   useEffect(() => {
@@ -85,6 +98,17 @@ export function CameraController({
   }, [stage, targetStation, isExploring]);
 
   useFrame((_, delta) => {
+    // If cinematic transition is active, let it drive the camera
+    if (cinematicController?.isActive) {
+      cinematicController.update(camera, currentTarget.current, performance.now());
+      camera.lookAt(currentTarget.current);
+      orbitTarget.current.copy(currentTarget.current);
+      if (externalTargetRef) {
+        externalTargetRef.current.copy(currentTarget.current);
+      }
+      return;
+    }
+
     // 1. Stage transition lerp
     if (progress.current < 1) {
       progress.current = Math.min(1, progress.current + delta * 0.45);
@@ -126,6 +150,9 @@ export function CameraController({
 
     camera.lookAt(currentTarget.current);
     orbitTarget.current.copy(currentTarget.current);
+    if (externalTargetRef) {
+      externalTargetRef.current.copy(currentTarget.current);
+    }
   });
 
   return null;

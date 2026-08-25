@@ -1,13 +1,17 @@
 import { useState } from 'react';
-import { ACTIVE_STATION_COUNT, ANOMALY_COUNT, MODEL_COVERAGE, DATA_FRESHNESS } from '../../data/oceanData';
 
 interface NavigationProps {
   onNavClick?: (section: string) => void;
+  anomalyCount?: number;
+  stationCount?: number;
+  dataSource?: string;
+  totalRecords?: number;
+  highCount?: number;
 }
 
 const NAV_ITEMS = ['EXPLORE', 'OBSERVATIONS', 'MODELS', 'ANALYTICS', 'ABOUT'];
 
-export function Navigation({ onNavClick }: NavigationProps) {
+export function Navigation({ onNavClick, anomalyCount = 0, stationCount = 0, dataSource, totalRecords = 0, highCount = 0 }: NavigationProps) {
   const [menuOpen, setMenuOpen] = useState(false);
 
   return (
@@ -81,11 +85,12 @@ export function Navigation({ onNavClick }: NavigationProps) {
         }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '5px' }}>
             <div style={{
-              width: 6, height: 6, borderRadius: '50%', background: '#22c55e',
-              boxShadow: '0 0 5px #22c55e',
+              width: 6, height: 6, borderRadius: '50%',
+              background: dataSource === 'api' ? '#22c55e' : '#64748b',
+              boxShadow: dataSource === 'api' ? '0 0 5px #22c55e' : 'none',
             }} />
             <span style={{ fontSize: '9px', color: 'rgba(148,163,184,0.7)', letterSpacing: '0.12em' }}>
-              OPERATIONAL
+              {dataSource === 'api' ? 'ML ONLINE' : 'OFFLINE'}
             </span>
           </div>
 
@@ -152,10 +157,11 @@ export function Navigation({ onNavClick }: NavigationProps) {
         }}
       >
         {[
-          { label: 'ACTIVE STATIONS', value: ACTIVE_STATION_COUNT },
-          { label: 'MODEL COVERAGE', value: `${MODEL_COVERAGE}%` },
-          { label: 'ANOMALIES', value: ANOMALY_COUNT, alert: true },
-          { label: 'DATA SYNC', value: `${DATA_FRESHNESS} MIN AGO` },
+          { label: 'STATIONS', value: stationCount },
+          { label: 'OBSERVED', value: totalRecords > 0 ? totalRecords.toLocaleString() : '—' },
+          { label: 'ANOMALIES', value: anomalyCount, alert: anomalyCount > 0 },
+          { label: 'HIGH', value: highCount, alert: highCount > 0 },
+          { label: 'SOURCE', value: dataSource === 'api' ? 'COPERNICUS + ARGO' : 'DEMO' },
         ].map(({ label, value, alert }) => (
           <div key={label} style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
             <span style={{ fontSize: '7px', color: '#334155', letterSpacing: '0.15em' }}>
