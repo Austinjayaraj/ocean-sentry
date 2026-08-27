@@ -23,3 +23,6 @@ dist-ssr
 *.sln
 *.sw?
 .env
+n8n/.env
+backend/data/user_locations.json
+backend/data/subscriptions.json
